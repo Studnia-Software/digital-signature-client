@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Sign some files!</title>
+    <title>Digital Signature</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes fadeIn {
@@ -106,16 +106,28 @@
 <div class="container mx-auto px-6 py-16 min-h-screen flex items-center justify-center">
     <div class="w-full max-w-2xl fade-in">
         <!-- Header -->
-        <div class="text-center mb-16">
+        <div class="text-center mb-12">
             <div class="inline-block mb-4">
                 <div class="text-5xl icon-pulse">🔐</div>
             </div>
             <h1 class="text-4xl font-light mb-3 tracking-tight">
-                Sign some files here!
+                Digital Signature
             </h1>
             <p class="text-gray-500 text-sm">
                 Secure document authentication
             </p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-center mb-8">
+            <div class="inline-flex bg-[#111111] rounded-lg p-1 border border-[#1f1f1f]">
+                <a href="{{ route('signature.index') }}" class="px-6 py-2 text-sm bg-[#1a1a1a] text-white rounded-md">
+                    Sign
+                </a>
+                <a href="{{ route('signature.verify') }}" class="px-6 py-2 text-sm text-gray-500 hover:text-white transition-colors rounded-md">
+                    Verify
+                </a>
+            </div>
         </div>
 
         <!-- Main Card -->
@@ -167,6 +179,43 @@
                     </span>
             </button>
 
+            <!-- Signature Details -->
+            <div id="signatureDetails" class="hidden mt-6 bg-[#151515] rounded-xl p-6 border border-[#1f1f1f]">
+                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#2a2a2a]">
+                    <div class="text-3xl">🎫</div>
+                    <h3 class="text-lg font-normal text-white">Signature Details</h3>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Key Information -->
+                    <div class="bg-[#1a1a1a] rounded-lg p-4">
+                        <p class="text-xs text-gray-600 mb-2">Signing Key</p>
+                        <p class="text-base text-white font-medium" id="keyName"></p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-xs text-gray-500" id="keyApprover"></span>
+                            <span class="text-gray-700">•</span>
+                            <span class="text-xs text-gray-500">Expires: <span id="keyExpiration"></span></span>
+                        </div>
+                    </div>
+
+                    <!-- File Signature -->
+                    <div>
+                        <p class="text-xs text-gray-600 mb-2">File Signature</p>
+                        <div class="bg-[#1a1a1a] rounded-lg p-3">
+                            <p class="text-xs text-green-400 font-mono break-all leading-relaxed" id="fileSignature"></p>
+                        </div>
+                    </div>
+
+                    <!-- Key Signature -->
+                    <div>
+                        <p class="text-xs text-gray-600 mb-2">Key Signature</p>
+                        <div class="bg-[#1a1a1a] rounded-lg p-3">
+                            <p class="text-xs text-purple-400 font-mono" id="keySignature"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Status Message -->
             <div id="statusMessage" class="hidden mt-6 rounded-xl p-4 text-sm"></div>
         </div>
@@ -192,6 +241,7 @@
     const signButton = document.getElementById('signButton');
     const openFileButton = document.getElementById('openFileButton');
     const statusMessage = document.getElementById('statusMessage');
+    const signatureDetails = document.getElementById('signatureDetails');
     let selectedFile = null;
     let signedFilePath = null;
 
@@ -225,6 +275,7 @@
         fileInfo.classList.add('hidden');
         signButton.classList.add('hidden');
         openFileButton.classList.add('hidden');
+        signatureDetails.classList.add('hidden');
         dropZone.classList.remove('hidden');
         hideStatus();
     });
@@ -254,9 +305,13 @@
             const data = await response.json();
 
             if (response.ok) {
-                signedFilePath = data.data.signed_file_path;
-                showStatus('✓ Document signed and stored in ' + signedFilePath, 'success');
+                console.log('Response data:', data); // Debug log
+                signedFilePath = data.data.file_path || data.data.file_name;
+                showStatus('✓ Document signed successfully', 'success');
                 openFileButton.classList.remove('hidden');
+
+                // Display signature details
+                displaySignatureDetails(data.data);
             } else {
                 showStatus('Error: ' + (data.message || 'Failed to sign document'), 'error');
             }
@@ -331,6 +386,28 @@
 
     function hideStatus() {
         statusMessage.classList.add('hidden');
+    }
+
+    function displaySignatureDetails(data) {
+        console.log('Displaying signature details:', data); // Debug log
+
+        // Populate signature details with fallback values
+        const keyName = data.key_name || 'N/A';
+        const keyApprover = data.key_approver || 'N/A';
+        const keyExpiration = data.key_expiration_date || 'N/A';
+        const fileSignature = data.file_signature || data.signature_hash || 'N/A';
+        const keySignature = data.key_signature || 'N/A';
+
+        document.getElementById('keyName').textContent = keyName;
+        document.getElementById('keyApprover').textContent = keyApprover;
+        document.getElementById('keyExpiration').textContent = keyExpiration;
+        document.getElementById('fileSignature').textContent = fileSignature;
+        document.getElementById('keySignature').textContent = keySignature;
+
+        console.log('Details populated'); // Debug log
+
+        // Show the details section
+        signatureDetails.classList.remove('hidden');
     }
 </script>
 </body>
